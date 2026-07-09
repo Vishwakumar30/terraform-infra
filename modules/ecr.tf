@@ -1,1 +1,40 @@
 
+resource "aws_ecr_repository" "my-ecr-repository" {
+  name                 = "my-ecr-repository"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  encryption_configuration {
+    encryption_type = "AES256"
+  }
+
+  tags = {
+    Name = "my-ecr-repository"
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "my-ecr-policy" {
+  repository = aws_ecr_repository.my-ecr-repository.name
+
+  policy = <<EOF
+{
+  "rules": [
+    {
+      "rulePriority": 1,
+      "description": "Keep only last 10 images",
+      "selection": {
+        "tagStatus": "any",
+        "countType": "imageCountMoreThan",
+        "countNumber": 10
+      },
+      "action": {
+        "type": "expire"
+      }
+    }
+  ]
+}
+EOF
+}
