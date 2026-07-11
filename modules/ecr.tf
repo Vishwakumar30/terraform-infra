@@ -1,40 +1,31 @@
+module "ecr" {
+  source = "terraform-aws-modules/ecr/aws"
 
-resource "aws_ecr_repository" "my-ecr-repository" {
-  name                 = "my-ecr-repository"
-  image_tag_mutability = "MUTABLE"
+  repository_name = "my-app"
 
-  image_scanning_configuration {
-    scan_on_push = true
-  }
+  repository_image_tag_mutability = "IMMUTABLE"
 
-  encryption_configuration {
-    encryption_type = "AES256"
-  }
+  repository_image_scan_on_push = true
+
+  repository_lifecycle_policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep last 10 images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 10
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
 
   tags = {
-    Name = "my-ecr-repository"
+    Environment = "dev"
+    Terraform   = "true"
   }
-}
-
-resource "aws_ecr_lifecycle_policy" "my-ecr-policy" {
-  repository = aws_ecr_repository.my-ecr-repository.name
-
-  policy = <<EOF
-{
-  "rules": [
-    {
-      "rulePriority": 1,
-      "description": "Keep only last 10 images",
-      "selection": {
-        "tagStatus": "any",
-        "countType": "imageCountMoreThan",
-        "countNumber": 10
-      },
-      "action": {
-        "type": "expire"
-      }
-    }
-  ]
-}
-EOF
 }
